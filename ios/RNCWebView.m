@@ -437,11 +437,42 @@ static NSDictionary* customCertificatesForHost;
       _onLoadingFinish(event);
     }
   } else if ([message.name isEqualToString:MessageHandlerName]) {
-    if (_onMessage) {
-      NSMutableDictionary<NSString *, id> *event = [self baseEvent];
-      [event addEntriesFromDictionary: @{@"data": message.body}];
-      _onMessage(event);
-    }
+      if (_onMessage) {
+          if (![message.body isEqualToString:@"highchartLoaded"]) {
+              __weak RNCWebView *weakSelf = self;
+              dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^(void){
+                  RNCWebView *strongSelf = weakSelf;
+                  if (!strongSelf) {
+                      return;
+                  }
+                  
+                  NSTimeInterval time = [[NSDate date] timeIntervalSince1970];
+                  NSString *filename = [NSString stringWithFormat:@"images/%f.png", time];
+                  // Create path.
+                  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+                  NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:filename];
+                  
+                  NSString *base64String = (NSString *)message.body;
+                  // Save image.
+                  NSData* data = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
+                  
+                  Boolean success = [data writeToFile:filePath atomically:YES];
+                  RCTLogInfo(@"============================\n%@ -- success: %d", filePath, success);
+                  
+                  if (success) {
+                      NSMutableDictionary<NSString *, id> *event = [self baseEvent];
+                      [event addEntriesFromDictionary: @{@"data": filePath}];
+                      strongSelf.onMessage(event);
+                  } else {
+                      RCTLogError(@"Unable to write image dataq at: %@", filePath);
+                  }
+              });
+          } else {
+              NSMutableDictionary<NSString *, id> *event = [self baseEvent];
+              [event addEntriesFromDictionary: @{@"data": message.body}];
+              _onMessage(event);
+          }
+      }
   }
 }
 
