@@ -441,11 +441,6 @@ static NSDictionary* customCertificatesForHost;
           if (![message.body isEqualToString:@"highchartLoaded"]) {
               __weak RNCWebView *weakSelf = self;
               dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^(void){
-                  RNCWebView *strongSelf = weakSelf;
-                  if (!strongSelf) {
-                      return;
-                  }
-                  
                   NSTimeInterval time = [[NSDate date] timeIntervalSince1970];
                   NSString *filename = [NSString stringWithFormat:@"images/%f.png", time];
                   // Create path.
@@ -462,7 +457,9 @@ static NSDictionary* customCertificatesForHost;
                   if (success) {
                       NSMutableDictionary<NSString *, id> *event = [self baseEvent];
                       [event addEntriesFromDictionary: @{@"data": filePath}];
-                      strongSelf.onMessage(event);
+                      if (!weakSelf) {
+                          weakSelf.onMessage(event);
+                      }
                   } else {
                       RCTLogError(@"Unable to write image dataq at: %@", filePath);
                   }
