@@ -457,7 +457,7 @@ static NSDictionary* customCertificatesForHost;
                   if (success) {
                       NSMutableDictionary<NSString *, id> *event = [self baseEvent];
                       [event addEntriesFromDictionary: @{@"data": filePath}];
-                      if (!weakSelf) {
+                      if (weakSelf) {
                           weakSelf.onMessage(event);
                       }
                   } else {
